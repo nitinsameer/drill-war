@@ -159,7 +159,7 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, onStats, onFinis
 
     const spawnAhead = () => {
       while (spawnedTo < player.depth + 120) {
-        spawnedTo += 4 + Math.random() * 3;
+        spawnedTo += 3 + Math.random() * 2.4;
         const roll = Math.random();
         const zoneDeep = spawnedTo > 72;
         let type: PickupType = "star";
@@ -285,7 +285,7 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, onStats, onFinis
         rivals.forEach((rival, index) => {
           rival.depth += dt * rival.speed * (index ? .95 : 1.05) + Math.sin(now / 900 + index) * dt;
           rival.x += Math.sin(now / 1400 + index * 3) * dt * .015;
-          rival.score += dt * (13 + rival.speed * 2.2) + (Math.random() < dt * 1.4 ? 90 : 0);
+          rival.score += dt * (9 + rival.speed * 0.8) + (Math.random() < dt * 0.14 ? 80 : 0);
         });
         stats.rivals = rivals.map((rival) => ({ name: rival.name, score: Math.floor(rival.score) }));
 
