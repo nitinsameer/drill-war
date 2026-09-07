@@ -128,7 +128,7 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, onStats, onFinis
     if (!ctx) return;
     let frame = 0;
     let previous = performance.now();
-    const player = { x: 0.5, depth: 0, targetDepth: 0 };
+    const player = { x: 0.5, depth: 0, targetDepth: 0, direction: 0, moving: true };
     const drill = drills.find((item) => item.id === selectedDrill) ?? drills[0]!;
     const char = characters.find((item) => item.id === selectedCharacter) ?? characters[0]!;
     const rivals = characters
@@ -140,6 +140,7 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, onStats, onFinis
         speed: index ? 4.3 : 4.9,
         score: 0,
         color: item.id === "robo" ? "#40d8ff" : item.id === "mia" ? "#ff5a80" : "#f0a712",
+        direction: 0,
       }));
 
     const stats: GameStats = emptyStats();
@@ -190,16 +191,63 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, onStats, onFinis
       ctx.save(); ctx.translate(x, y); ctx.shadowColor = color; ctx.shadowBlur = 14; ctx.fillStyle = color;
       ctx.beginPath(); ctx.moveTo(0, -size); ctx.lineTo(size * .7, -size * .25); ctx.lineTo(size * .45, size); ctx.lineTo(-size * .45, size); ctx.lineTo(-size * .7, -size * .25); ctx.closePath(); ctx.fill(); ctx.restore();
     };
-    const drawDrill = (x: number, y: number, color: string, label: string, isPlayer = false) => {
-      ctx.save(); ctx.translate(x, y); if (isPlayer) { ctx.shadowColor = "#ffc400"; ctx.shadowBlur = 18; }
-      ctx.fillStyle = "rgba(2,10,22,.5)"; ctx.beginPath(); ctx.ellipse(0, 23, 39, 10, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = color; rounded(-34, -15, 54, 35, 10);
-      ctx.fillStyle = "#10203a"; rounded(-28, 12, 48, 14, 6);
-      ctx.fillStyle = "#a9dfff"; rounded(-8, -28, 24, 18, 6);
-      ctx.fillStyle = "#e6edf5"; ctx.beginPath(); ctx.moveTo(18, -13); ctx.lineTo(58, 3); ctx.lineTo(18, 19); ctx.closePath(); ctx.fill();
-      ctx.strokeStyle = "#71839a"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(27, -8); ctx.lineTo(46, 13); ctx.moveTo(27, 14); ctx.lineTo(47, -6); ctx.stroke();
-      ctx.shadowBlur = 0; ctx.fillStyle = isPlayer ? "#ffc400" : "#07182f"; rounded(-28, -48, 56, 17, 8);
-      ctx.fillStyle = isPlayer ? "#10203a" : "#f4f8ff"; ctx.font = "800 10px Arial"; ctx.textAlign = "center"; ctx.fillText(label.toUpperCase(), 0, -36); ctx.restore();
+    const drawDrill = (x: number, y: number, color: string, label: string, direction: number, now: number, isPlayer = false, moving = true) => {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(direction);
+
+      // Loose dirt sprays from behind the tracks while the rig is moving.
+      if (moving && !paused) {
+        for (let i = 0; i < 5; i++) {
+          const phase = ((now / 5 + i * 29) % 120) / 120;
+          const side = i % 2 ? 1 : -1;
+          ctx.globalAlpha = (1 - phase) * .42;
+          ctx.fillStyle = i % 3 ? "#c69055" : "#745035";
+          ctx.beginPath();
+          ctx.arc(side * (18 + phase * 24), -31 - phase * 28, 3 + phase * 6, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      if (isPlayer) { ctx.shadowColor = color; ctx.shadowBlur = 19; }
+      ctx.fillStyle = "rgba(2,10,22,.55)";
+      ctx.beginPath(); ctx.ellipse(0, 7, 34, 43, 0, 0, Math.PI * 2); ctx.fill();
+
+      // Heavy crawler tracks and compact drilling body.
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "#111a25"; rounded(-34, -35, 18, 58, 8); rounded(16, -35, 18, 58, 8);
+      ctx.strokeStyle = "#657183"; ctx.lineWidth = 3;
+      for (const side of [-25, 25]) {
+        ctx.beginPath(); ctx.moveTo(side, -27); ctx.lineTo(side, 15); ctx.stroke();
+        for (let tread = -22; tread <= 12; tread += 11) {
+          ctx.beginPath(); ctx.arc(side, tread, 4, 0, Math.PI * 2); ctx.stroke();
+        }
+      }
+      ctx.fillStyle = color; rounded(-22, -39, 44, 57, 9);
+      ctx.fillStyle = "#18283b"; rounded(-14, -31, 28, 20, 5);
+      ctx.fillStyle = "#bcecff"; rounded(-10, -28, 20, 12, 4);
+      ctx.fillStyle = "#d8e1e8"; rounded(-13, 14, 26, 12, 4);
+
+      // A large animated auger points in the actual travel direction.
+      const spin = now / 55;
+      ctx.fillStyle = "#eef2f4";
+      ctx.beginPath(); ctx.moveTo(-20, 25); ctx.lineTo(0, 68); ctx.lineTo(20, 25); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = "#66788b"; ctx.lineWidth = 4;
+      for (let ring = 0; ring < 3; ring++) {
+        const yy = 31 + ring * 10;
+        const half = 17 - ring * 4;
+        ctx.beginPath();
+        ctx.moveTo(-half, yy + Math.sin(spin + ring) * 3);
+        ctx.lineTo(half, yy - Math.sin(spin + ring) * 3);
+        ctx.stroke();
+      }
+      ctx.fillStyle = color; ctx.beginPath(); ctx.arc(0, 23, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+
+      // Labels remain readable while the machine turns.
+      ctx.save(); ctx.translate(x, y); ctx.fillStyle = isPlayer ? "#ffc400" : "#07182f"; rounded(-32, -62, 64, 17, 7);
+      ctx.fillStyle = isPlayer ? "#10203a" : "#f4f8ff"; ctx.font = "800 10px Arial"; ctx.textAlign = "center"; ctx.fillText(label.toUpperCase(), 0, -50); ctx.restore();
     };
     const drawPickup = (type: PickupType, x: number, y: number, now: number) => {
       const bob = Math.sin(now / 320 + x) * 3;
@@ -275,6 +323,13 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, onStats, onFinis
         const speedMul = (boostTime > 0 ? 1.7 : 1) * moveBonus * (stunTime > 0 ? 0 : 1);
         const horizontal = (input.right ? 1 : 0) - (input.left ? 1 : 0);
         const vertical = (input.down ? 1 : 0) - (input.up ? 1 : 0);
+        if (horizontal || vertical) {
+          player.direction = Math.atan2(-horizontal, vertical);
+          player.moving = true;
+        } else {
+          player.direction = 0;
+          player.moving = stunTime <= 0;
+        }
         player.x = Math.max(.08, Math.min(.92, player.x + horizontal * dt * (.19 + drill.speed * .017) * speedMul));
         player.targetDepth = Math.max(0, player.targetDepth + vertical * dt * (7 + drill.power * 1.1) * speedMul);
         if (!horizontal && !vertical && stunTime <= 0) player.targetDepth += dt * 2.1;
@@ -283,8 +338,10 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, onStats, onFinis
         stats.score += dt * 4; // depth pressure keeps the race moving
 
         rivals.forEach((rival, index) => {
+          const lateral = Math.sin(now / 1400 + index * 3) * .015;
           rival.depth += dt * rival.speed * (index ? .95 : 1.05) + Math.sin(now / 900 + index) * dt;
-          rival.x += Math.sin(now / 1400 + index * 3) * dt * .015;
+          rival.x += lateral * dt;
+          rival.direction = Math.atan2(-lateral * 18, 1);
           rival.score += dt * (9 + rival.speed * 0.8) + (Math.random() < dt * 0.14 ? 80 : 0);
         });
         stats.rivals = rivals.map((rival) => ({ name: rival.name, score: Math.floor(rival.score) }));
@@ -340,7 +397,7 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, onStats, onFinis
         drawPickup(pickup.type, pickup.x * w, py, now);
       });
 
-      rivals.forEach((rival, index) => drawDrill(rival.x * w, playerY + (rival.depth - player.depth) * 5 + (index ? 150 : -130), rival.color, rival.name));
+      rivals.forEach((rival, index) => drawDrill(rival.x * w, playerY + (rival.depth - player.depth) * 5 + (index ? 150 : -130), rival.color, rival.name, rival.direction, now));
 
       if (magnetTime > 0) {
         ctx.save(); ctx.strokeStyle = "rgba(255,90,128,.45)"; ctx.lineWidth = 2;
@@ -350,7 +407,8 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, onStats, onFinis
         ctx.save(); ctx.strokeStyle = "rgba(64,216,255,.75)"; ctx.lineWidth = 3;
         ctx.beginPath(); ctx.arc(player.x * w, playerY, 52, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
       }
-      drawDrill(player.x * w, playerY, selectedDrill === "speed" ? "#ff5578" : selectedDrill === "power" ? "#31bff1" : "#f0a712", `YOU · ${char.name}`, true);
+      const playerColor = selectedCharacter === "robo" ? "#40d8ff" : selectedCharacter === "mia" ? "#ff5a80" : "#f0a712";
+      drawDrill(player.x * w, playerY, playerColor, `YOU · ${char.name}`, player.direction, now, true, player.moving);
       if (stunTime > 0) {
         ctx.save(); ctx.fillStyle = "rgba(255,61,22,.22)"; ctx.fillRect(0, 0, w, h); ctx.restore();
       }
