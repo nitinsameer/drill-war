@@ -132,7 +132,7 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, onStats, onFinis
     if (!ctx) return;
     let frame = 0;
     let previous = performance.now();
-    const player = { x: 0.5, depth: 0, targetDepth: 0, direction: 0, moving: true };
+    const player = { x: 0.5, depth: 0, targetDepth: 0, direction: 0, targetDirection: 0, moving: true, vx: 0, vy: 1 };
     const drill = drills.find((item) => item.id === selectedDrill) ?? drills[0]!;
     const char = characters.find((item) => item.id === selectedCharacter) ?? characters[0]!;
     const rivals = characters
