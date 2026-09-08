@@ -574,7 +574,7 @@ export function DrillWarGame() {
       {screen === "menu" && <section className="menu-stage"><Brand /><p className="tagline">DIG DEEP <i /> COLLECT <i /> CONQUER</p><div className="menu-actions"><Button variant="arcade" size="hero" onClick={begin}><Play /> Start game</Button><div><Button variant="metal" size="lg" onClick={() => setScreen("howto")}><BookOpen /> How to play</Button><Button variant="metal" size="lg" onClick={() => setScreen("settings")}><Settings /> Settings</Button></div></div><span className="version">ARCADE EDITION · v1.0</span></section>}
 
       {screen === "howto" && <section className="panel-screen"><div className="panel-top"><Brand compact /><Button variant="control" size="iconGame" onClick={() => setScreen("menu")} aria-label="Back to menu"><Home /></Button></div><h1>HOW TO PLAY</h1><div className="howto-grid">
-        <article><span className="key-cluster">W<br />A S D</span><h3>Move & drill</h3><p>Use WASD, arrow keys, or the touch controls to race underground.</p></article>
+        <article><span className="key-cluster">◉</span><h3>Move & drill</h3><p>Drag the on-screen stick to steer and dig in any direction. WASD also works on a keyboard.</p></article>
         <article><span className="how-icon">⭐ 💎</span><h3>Grab treasure</h3><p>Stars are worth 10 × your combo, gems are worth 100. Keep collecting to hold the combo.</p></article>
         <article><span className="how-icon">⚡ 🧲 🛡</span><h3>Use power-ups</h3><p>Turbo speeds you up, the magnet vacuums treasure, a shield absorbs one blast.</p></article>
         <article><span className="how-icon">💣 🔥</span><h3>Dodge danger</h3><p>Bombs cost 60 points, break your combo and stun the drill for a second.</p></article>
