@@ -325,19 +325,41 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, onStats, onFinis
         if (comboTime <= 0) { stats.combo = 1; comboTime = 3; }
 
         const speedMul = (boostTime > 0 ? 1.7 : 1) * moveBonus * (stunTime > 0 ? 0 : 1);
-        const horizontal = (input.right ? 1 : 0) - (input.left ? 1 : 0);
-        const vertical = (input.down ? 1 : 0) - (input.up ? 1 : 0);
-        if (horizontal || vertical) {
-          player.direction = Math.atan2(-horizontal, vertical);
+        // Keyboard and joystick share one analog vector.
+        const keyH = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+        const keyV = (input.down ? 1 : 0) - (input.up ? 1 : 0);
+        let horizontal = keyH || stick.current.x;
+        let vertical = keyV || stick.current.y;
+        const magnitude = Math.hypot(horizontal, vertical);
+        if (magnitude > 1) { horizontal /= magnitude; vertical /= magnitude; }
+
+        if (magnitude > 0.12) {
+          player.targetDirection = Math.atan2(-horizontal, vertical);
           player.moving = true;
         } else {
-          player.direction = 0;
+          horizontal = 0; vertical = 0;
+          player.targetDirection = 0;
           player.moving = stunTime <= 0;
         }
-        player.x = Math.max(.08, Math.min(.92, player.x + horizontal * dt * (.19 + drill.speed * .017) * speedMul));
-        player.targetDepth = Math.max(0, player.targetDepth + vertical * dt * (7 + drill.power * 1.1) * speedMul);
+        // Smooth turn along the shortest arc so the rig never snaps.
+        let delta = player.targetDirection - player.direction;
+        while (delta > Math.PI) delta -= Math.PI * 2;
+        while (delta < -Math.PI) delta += Math.PI * 2;
+        player.direction += delta * Math.min(1, dt * 9);
+
+        // Ease the velocity for smooth starts and stops.
+        player.vx += (horizontal - player.vx) * Math.min(1, dt * 10);
+        player.vy += (vertical - player.vy) * Math.min(1, dt * 10);
+        if (Math.abs(player.vx) < 0.002) player.vx = 0;
+        if (Math.abs(player.vy) < 0.002) player.vy = 0;
+
+        // Keep the whole rig (plus its auger) inside the tunnel walls.
+        const edge = Math.min(0.3, 52 / Math.max(w, 1));
+        player.x = Math.max(edge, Math.min(1 - edge, player.x + player.vx * dt * (.19 + drill.speed * .017) * speedMul));
+        player.targetDepth = Math.max(0, player.targetDepth + player.vy * dt * (7 + drill.power * 1.1) * speedMul);
         if (!horizontal && !vertical && stunTime <= 0) player.targetDepth += dt * 2.1;
         player.depth += (player.targetDepth - player.depth) * Math.min(1, dt * 6);
+
         stats.depth = Math.floor(player.depth);
         stats.score += dt * 4; // depth pressure keeps the race moving
 
