@@ -366,8 +366,11 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, onStats, onFinis
         rivals.forEach((rival, index) => {
           const lateral = Math.sin(now / 1400 + index * 3) * .015;
           rival.depth += dt * rival.speed * (index ? .95 : 1.05) + Math.sin(now / 900 + index) * dt;
-          rival.x += lateral * dt;
-          rival.direction = Math.atan2(-lateral * 18, 1);
+          const rivalEdge = Math.min(0.3, 52 / Math.max(w, 1));
+          rival.x = Math.max(rivalEdge, Math.min(1 - rivalEdge, rival.x + lateral * dt));
+          const rivalDelta = Math.atan2(-lateral * 18, 1) - rival.direction;
+          rival.direction += rivalDelta * Math.min(1, dt * 6);
+
           rival.score += dt * (9 + rival.speed * 0.8) + (Math.random() < dt * 0.14 ? 80 : 0);
         });
         stats.rivals = rivals.map((rival) => ({ name: rival.name, score: Math.floor(rival.score) }));
