@@ -2,8 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowDown,
   ArrowLeft,
+
   ArrowRight,
-  ArrowUp,
+
   BookOpen,
   Gauge,
   Gem,
@@ -96,6 +97,9 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, onStats, onFinis
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const keys = useRef({ left: false, right: false, up: false, down: false });
+  // Analog stick vector, -1..1 on each axis. Touch and keyboard both feed movement.
+  const stick = useRef({ x: 0, y: 0 });
+  const [knob, setKnob] = useState({ x: 0, y: 0, active: false });
   const finishRef = useRef(false);
 
   const setInput = (key: keyof typeof keys.current, value: boolean) => {
@@ -121,6 +125,7 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, onStats, onFinis
     return () => { window.removeEventListener("keydown", down); window.removeEventListener("keyup", up); };
   }, []);
 
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -128,7 +133,7 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, onStats, onFinis
     if (!ctx) return;
     let frame = 0;
     let previous = performance.now();
-    const player = { x: 0.5, depth: 0, targetDepth: 0, direction: 0, moving: true };
+    const player = { x: 0.5, depth: 0, targetDepth: 0, direction: 0, targetDirection: 0, moving: true, vx: 0, vy: 1 };
     const drill = drills.find((item) => item.id === selectedDrill) ?? drills[0]!;
     const char = characters.find((item) => item.id === selectedCharacter) ?? characters[0]!;
     const rivals = characters
@@ -321,27 +326,52 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, onStats, onFinis
         if (comboTime <= 0) { stats.combo = 1; comboTime = 3; }
 
         const speedMul = (boostTime > 0 ? 1.7 : 1) * moveBonus * (stunTime > 0 ? 0 : 1);
-        const horizontal = (input.right ? 1 : 0) - (input.left ? 1 : 0);
-        const vertical = (input.down ? 1 : 0) - (input.up ? 1 : 0);
-        if (horizontal || vertical) {
-          player.direction = Math.atan2(-horizontal, vertical);
+        // Keyboard and joystick share one analog vector.
+        const keyH = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+        const keyV = (input.down ? 1 : 0) - (input.up ? 1 : 0);
+        let horizontal = keyH || stick.current.x;
+        let vertical = keyV || stick.current.y;
+        const magnitude = Math.hypot(horizontal, vertical);
+        if (magnitude > 1) { horizontal /= magnitude; vertical /= magnitude; }
+
+        if (magnitude > 0.12) {
+          player.targetDirection = Math.atan2(-horizontal, vertical);
           player.moving = true;
         } else {
-          player.direction = 0;
+          horizontal = 0; vertical = 0;
+          player.targetDirection = 0;
           player.moving = stunTime <= 0;
         }
-        player.x = Math.max(.08, Math.min(.92, player.x + horizontal * dt * (.19 + drill.speed * .017) * speedMul));
-        player.targetDepth = Math.max(0, player.targetDepth + vertical * dt * (7 + drill.power * 1.1) * speedMul);
+        // Smooth turn along the shortest arc so the rig never snaps.
+        let delta = player.targetDirection - player.direction;
+        while (delta > Math.PI) delta -= Math.PI * 2;
+        while (delta < -Math.PI) delta += Math.PI * 2;
+        player.direction += delta * Math.min(1, dt * 9);
+
+        // Ease the velocity for smooth starts and stops.
+        player.vx += (horizontal - player.vx) * Math.min(1, dt * 10);
+        player.vy += (vertical - player.vy) * Math.min(1, dt * 10);
+        if (Math.abs(player.vx) < 0.002) player.vx = 0;
+        if (Math.abs(player.vy) < 0.002) player.vy = 0;
+
+        // Keep the whole rig (plus its auger) inside the tunnel walls.
+        const edge = Math.min(0.3, 52 / Math.max(w, 1));
+        player.x = Math.max(edge, Math.min(1 - edge, player.x + player.vx * dt * (.19 + drill.speed * .017) * speedMul));
+        player.targetDepth = Math.max(0, player.targetDepth + player.vy * dt * (7 + drill.power * 1.1) * speedMul);
         if (!horizontal && !vertical && stunTime <= 0) player.targetDepth += dt * 2.1;
         player.depth += (player.targetDepth - player.depth) * Math.min(1, dt * 6);
+
         stats.depth = Math.floor(player.depth);
         stats.score += dt * 4; // depth pressure keeps the race moving
 
         rivals.forEach((rival, index) => {
           const lateral = Math.sin(now / 1400 + index * 3) * .015;
           rival.depth += dt * rival.speed * (index ? .95 : 1.05) + Math.sin(now / 900 + index) * dt;
-          rival.x += lateral * dt;
-          rival.direction = Math.atan2(-lateral * 18, 1);
+          const rivalEdge = Math.min(0.3, 52 / Math.max(w, 1));
+          rival.x = Math.max(rivalEdge, Math.min(1 - rivalEdge, rival.x + lateral * dt));
+          const rivalDelta = Math.atan2(-lateral * 18, 1) - rival.direction;
+          rival.direction += rivalDelta * Math.min(1, dt * 6);
+
           rival.score += dt * (9 + rival.speed * 0.8) + (Math.random() < dt * 0.14 ? 80 : 0);
         });
         stats.rivals = rivals.map((rival) => ({ name: rival.name, score: Math.floor(rival.score) }));
@@ -434,26 +464,50 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, onStats, onFinis
     return () => { cancelAnimationFrame(frame); window.removeEventListener("resize", resize); };
   }, [onFinish, onStats, paused, selectedCharacter, selectedDrill]);
 
-  const controlProps = (key: keyof typeof keys.current) => ({
-    onPointerDown: () => setInput(key, true),
-    onPointerUp: () => setInput(key, false),
-    onPointerCancel: () => setInput(key, false),
-    onPointerLeave: () => setInput(key, false),
-  });
+  const padRef = useRef<HTMLDivElement>(null);
+  const pointerId = useRef<number | null>(null);
+
+  const updateStick = (event: React.PointerEvent<HTMLDivElement>) => {
+    const pad = padRef.current;
+    if (!pad) return;
+    const rect = pad.getBoundingClientRect();
+    const radius = rect.width / 2;
+    let dx = (event.clientX - (rect.left + radius)) / radius;
+    let dy = (event.clientY - (rect.top + radius)) / radius;
+    const distance = Math.hypot(dx, dy);
+    if (distance > 1) { dx /= distance; dy /= distance; }
+    stick.current = { x: dx, y: dy };
+    setKnob({ x: dx, y: dy, active: true });
+  };
+
+  const releaseStick = () => {
+    pointerId.current = null;
+    stick.current = { x: 0, y: 0 };
+    setKnob({ x: 0, y: 0, active: false });
+  };
 
   return (
     <>
       <canvas ref={canvasRef} className="game-canvas" aria-label="Drill War mine" />
-      <div className="touch-controls" aria-label="Movement controls">
-        <Button variant="control" size="iconGame" aria-label="Move left" {...controlProps("left")}><ArrowLeft /></Button>
-        <span className="touch-vertical">
-          <Button variant="control" size="iconGame" aria-label="Move up" {...controlProps("up")}><ArrowUp /></Button>
-          <Button variant="control" size="iconGame" aria-label="Drill down" {...controlProps("down")}><ArrowDown /></Button>
-        </span>
-        <Button variant="control" size="iconGame" aria-label="Move right" {...controlProps("right")}><ArrowRight /></Button>
+      <div
+        ref={padRef}
+        className={`joystick${knob.active ? " active" : ""}`}
+        role="application"
+        aria-label="Drag to steer your drill"
+        onPointerDown={(event) => {
+          pointerId.current = event.pointerId;
+          event.currentTarget.setPointerCapture(event.pointerId);
+          updateStick(event);
+        }}
+        onPointerMove={(event) => { if (pointerId.current === event.pointerId) updateStick(event); }}
+        onPointerUp={releaseStick}
+        onPointerCancel={releaseStick}
+      >
+        <span className="joystick-knob" style={{ transform: `translate(${knob.x * 42}px, ${knob.y * 42}px)` }} />
       </div>
     </>
   );
+
 }
 
 export function DrillWarGame() {
@@ -522,7 +576,7 @@ export function DrillWarGame() {
       {screen === "menu" && <section className="menu-stage"><Brand /><p className="tagline">DIG DEEP <i /> COLLECT <i /> CONQUER</p><div className="menu-actions"><Button variant="arcade" size="hero" onClick={begin}><Play /> Start game</Button><div><Button variant="metal" size="lg" onClick={() => setScreen("howto")}><BookOpen /> How to play</Button><Button variant="metal" size="lg" onClick={() => setScreen("settings")}><Settings /> Settings</Button></div></div><span className="version">ARCADE EDITION · v1.0</span></section>}
 
       {screen === "howto" && <section className="panel-screen"><div className="panel-top"><Brand compact /><Button variant="control" size="iconGame" onClick={() => setScreen("menu")} aria-label="Back to menu"><Home /></Button></div><h1>HOW TO PLAY</h1><div className="howto-grid">
-        <article><span className="key-cluster">W<br />A S D</span><h3>Move & drill</h3><p>Use WASD, arrow keys, or the touch controls to race underground.</p></article>
+        <article><span className="key-cluster">◉</span><h3>Move & drill</h3><p>Drag the on-screen stick to steer and dig in any direction. WASD also works on a keyboard.</p></article>
         <article><span className="how-icon">⭐ 💎</span><h3>Grab treasure</h3><p>Stars are worth 10 × your combo, gems are worth 100. Keep collecting to hold the combo.</p></article>
         <article><span className="how-icon">⚡ 🧲 🛡</span><h3>Use power-ups</h3><p>Turbo speeds you up, the magnet vacuums treasure, a shield absorbs one blast.</p></article>
         <article><span className="how-icon">💣 🔥</span><h3>Dodge danger</h3><p>Bombs cost 60 points, break your combo and stun the drill for a second.</p></article>
