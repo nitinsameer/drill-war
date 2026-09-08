@@ -96,6 +96,9 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, onStats, onFinis
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const keys = useRef({ left: false, right: false, up: false, down: false });
+  // Analog stick vector, -1..1 on each axis. Touch and keyboard both feed movement.
+  const stick = useRef({ x: 0, y: 0 });
+  const [knob, setKnob] = useState({ x: 0, y: 0, active: false });
   const finishRef = useRef(false);
 
   const setInput = (key: keyof typeof keys.current, value: boolean) => {
@@ -120,6 +123,7 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, onStats, onFinis
     window.addEventListener("keyup", up);
     return () => { window.removeEventListener("keydown", down); window.removeEventListener("keyup", up); };
   }, []);
+
 
   useEffect(() => {
     const canvas = canvasRef.current;
