@@ -463,26 +463,50 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, onStats, onFinis
     return () => { cancelAnimationFrame(frame); window.removeEventListener("resize", resize); };
   }, [onFinish, onStats, paused, selectedCharacter, selectedDrill]);
 
-  const controlProps = (key: keyof typeof keys.current) => ({
-    onPointerDown: () => setInput(key, true),
-    onPointerUp: () => setInput(key, false),
-    onPointerCancel: () => setInput(key, false),
-    onPointerLeave: () => setInput(key, false),
-  });
+  const padRef = useRef<HTMLDivElement>(null);
+  const pointerId = useRef<number | null>(null);
+
+  const updateStick = (event: React.PointerEvent<HTMLDivElement>) => {
+    const pad = padRef.current;
+    if (!pad) return;
+    const rect = pad.getBoundingClientRect();
+    const radius = rect.width / 2;
+    let dx = (event.clientX - (rect.left + radius)) / radius;
+    let dy = (event.clientY - (rect.top + radius)) / radius;
+    const distance = Math.hypot(dx, dy);
+    if (distance > 1) { dx /= distance; dy /= distance; }
+    stick.current = { x: dx, y: dy };
+    setKnob({ x: dx, y: dy, active: true });
+  };
+
+  const releaseStick = () => {
+    pointerId.current = null;
+    stick.current = { x: 0, y: 0 };
+    setKnob({ x: 0, y: 0, active: false });
+  };
 
   return (
     <>
       <canvas ref={canvasRef} className="game-canvas" aria-label="Drill War mine" />
-      <div className="touch-controls" aria-label="Movement controls">
-        <Button variant="control" size="iconGame" aria-label="Move left" {...controlProps("left")}><ArrowLeft /></Button>
-        <span className="touch-vertical">
-          <Button variant="control" size="iconGame" aria-label="Move up" {...controlProps("up")}><ArrowUp /></Button>
-          <Button variant="control" size="iconGame" aria-label="Drill down" {...controlProps("down")}><ArrowDown /></Button>
-        </span>
-        <Button variant="control" size="iconGame" aria-label="Move right" {...controlProps("right")}><ArrowRight /></Button>
+      <div
+        ref={padRef}
+        className={`joystick${knob.active ? " active" : ""}`}
+        role="application"
+        aria-label="Drag to steer your drill"
+        onPointerDown={(event) => {
+          pointerId.current = event.pointerId;
+          event.currentTarget.setPointerCapture(event.pointerId);
+          updateStick(event);
+        }}
+        onPointerMove={(event) => { if (pointerId.current === event.pointerId) updateStick(event); }}
+        onPointerUp={releaseStick}
+        onPointerCancel={releaseStick}
+      >
+        <span className="joystick-knob" style={{ transform: `translate(${knob.x * 42}px, ${knob.y * 42}px)` }} />
       </div>
     </>
   );
+
 }
 
 export function DrillWarGame() {
