@@ -309,8 +309,9 @@
   .panel-top { gap: 10px; }
   .menu-art { object-position: 43% center; }
   .menu-stage { justify-content: flex-start; padding-top: 10vh; }
-  .brand span { font-size: clamp(4rem, 20vw, 6rem); }
-  .brand strong { font-size: clamp(3.4rem, 17vw, 5rem); }
+  .brand:not(.brand-compact) span { font-size: clamp(4rem, 20vw, 6rem); }
+  .brand:not(.brand-compact) strong { font-size: clamp(3.4rem, 17vw, 5rem); }
+  .brand-compact span, .brand-compact strong { font-size: clamp(.95rem, 5.5vw, 1.4rem); }
   .tagline { margin-top: 20px; }
   .selection-grid { grid-template-columns: 1fr; }
   .select-card { display: grid; grid-template-columns: 100px 1fr; text-align: left; gap: 4px 12px; }
