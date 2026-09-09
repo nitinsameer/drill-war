@@ -201,58 +201,85 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, onStats, onFinis
       ctx.translate(x, y);
       ctx.rotate(direction);
 
-      // Loose dirt sprays from behind the tracks while the rig is moving.
+      // Chunky rock chips and soft dust stream behind the spinning rig.
       if (moving && !paused) {
-        for (let i = 0; i < 5; i++) {
-          const phase = ((now / 5 + i * 29) % 120) / 120;
+        for (let i = 0; i < 9; i++) {
+          const phase = ((now / 4 + i * 17) % 100) / 100;
           const side = i % 2 ? 1 : -1;
-          ctx.globalAlpha = (1 - phase) * .42;
-          ctx.fillStyle = i % 3 ? "#c69055" : "#745035";
+          const spread = side * (9 + phase * 31 + (i % 3) * 4);
+          const trail = -30 - phase * 44;
+          ctx.globalAlpha = (1 - phase) * .46;
+          ctx.fillStyle = i % 3 ? "#b9783e" : "#6b4129";
           ctx.beginPath();
-          ctx.arc(side * (18 + phase * 24), -31 - phase * 28, 3 + phase * 6, 0, Math.PI * 2);
+          if (i % 3 === 0) {
+            ctx.moveTo(spread, trail - 5);
+            ctx.lineTo(spread + side * 7, trail + 3);
+            ctx.lineTo(spread - side * 3, trail + 7);
+            ctx.closePath();
+          } else {
+            ctx.arc(spread, trail, 3 + phase * 7, 0, Math.PI * 2);
+          }
           ctx.fill();
         }
         ctx.globalAlpha = 1;
       }
 
-      if (isPlayer) { ctx.shadowColor = color; ctx.shadowBlur = 19; }
-      ctx.fillStyle = "rgba(2,10,22,.55)";
-      ctx.beginPath(); ctx.ellipse(0, 7, 34, 43, 0, 0, Math.PI * 2); ctx.fill();
-
-      // Heavy crawler tracks and compact drilling body.
+      if (isPlayer) { ctx.shadowColor = color; ctx.shadowBlur = 18; }
+      ctx.fillStyle = "rgba(2,10,22,.5)";
+      ctx.beginPath(); ctx.ellipse(0, -1, 39, 46, 0, 0, Math.PI * 2); ctx.fill();
       ctx.shadowBlur = 0;
-      ctx.fillStyle = "#111a25"; rounded(-34, -35, 18, 58, 8); rounded(16, -35, 18, 58, 8);
-      ctx.strokeStyle = "#657183"; ctx.lineWidth = 3;
-      for (const side of [-25, 25]) {
-        ctx.beginPath(); ctx.moveTo(side, -27); ctx.lineTo(side, 15); ctx.stroke();
-        for (let tread = -22; tread <= 12; tread += 11) {
-          ctx.beginPath(); ctx.arc(side, tread, 4, 0, Math.PI * 2); ctx.stroke();
+
+      // Wide crawler tracks with individual steel tread plates.
+      for (const side of [-1, 1]) {
+        ctx.fillStyle = "#101722";
+        rounded(side * 18 - (side < 0 ? 17 : 0), -38, 17, 61, 7);
+        ctx.fillStyle = "#394758";
+        rounded(side * 20 - (side < 0 ? 13 : 0), -33, 10, 51, 5);
+        ctx.strokeStyle = "#8994a0";
+        ctx.lineWidth = 2;
+        for (let tread = -27; tread <= 13; tread += 10) {
+          ctx.beginPath(); ctx.moveTo(side * 21 - 5, tread); ctx.lineTo(side * 21 + 5, tread); ctx.stroke();
+        }
+        ctx.fillStyle = "#151d28";
+        for (const wheelY of [-25, -7, 11]) {
+          ctx.beginPath(); ctx.arc(side * 25, wheelY, 4.5, 0, Math.PI * 2); ctx.fill();
         }
       }
-      ctx.fillStyle = color; rounded(-22, -39, 44, 57, 9);
-      ctx.fillStyle = "#18283b"; rounded(-14, -31, 28, 20, 5);
-      ctx.fillStyle = "#bcecff"; rounded(-10, -28, 20, 12, 4);
-      ctx.fillStyle = "#d8e1e8"; rounded(-13, 14, 26, 12, 4);
 
-      // A large animated auger points in the actual travel direction.
-      const spin = now / 55;
-      ctx.fillStyle = "#eef2f4";
-      ctx.beginPath(); ctx.moveTo(-20, 25); ctx.lineTo(0, 68); ctx.lineTo(20, 25); ctx.closePath(); ctx.fill();
-      ctx.strokeStyle = "#66788b"; ctx.lineWidth = 4;
-      for (let ring = 0; ring < 3; ring++) {
-        const yy = 31 + ring * 10;
-        const half = 17 - ring * 4;
-        ctx.beginPath();
-        ctx.moveTo(-half, yy + Math.sin(spin + ring) * 3);
-        ctx.lineTo(half, yy - Math.sin(spin + ring) * 3);
-        ctx.stroke();
+      // Compact armored body, cockpit glass and character-color panels.
+      ctx.fillStyle = color; rounded(-22, -41, 44, 56, 8);
+      ctx.fillStyle = "rgba(255,255,255,.22)"; rounded(-17, -37, 34, 7, 4);
+      ctx.fillStyle = "#172334"; rounded(-15, -29, 30, 23, 5);
+      const glass = ctx.createLinearGradient(-10, -27, 12, -9);
+      glass.addColorStop(0, "#d5f7ff"); glass.addColorStop(1, "#5fb4ce");
+      ctx.fillStyle = glass; rounded(-11, -26, 22, 15, 4);
+      ctx.fillStyle = "rgba(255,255,255,.65)"; rounded(-8, -24, 8, 3, 2);
+      ctx.fillStyle = "#263646"; rounded(-19, -3, 38, 19, 6);
+      ctx.fillStyle = color; rounded(-14, 0, 28, 10, 4);
+      ctx.fillStyle = "#dce5e8"; rounded(-15, 13, 30, 9, 3);
+      ctx.fillStyle = "#6e7f8c";
+      for (const rivetX of [-10, 10]) { ctx.beginPath(); ctx.arc(rivetX, 17, 2, 0, Math.PI * 2); ctx.fill(); }
+
+      // Oversized conical auger with a moving helical cutting edge.
+      const spin = now / 70;
+      const steel = ctx.createLinearGradient(-22, 23, 22, 67);
+      steel.addColorStop(0, "#f8fcfd"); steel.addColorStop(.45, "#9cabb4"); steel.addColorStop(1, "#eef4f5");
+      ctx.fillStyle = steel;
+      ctx.beginPath(); ctx.moveTo(-22, 23); ctx.quadraticCurveTo(-13, 51, 0, 70); ctx.quadraticCurveTo(13, 51, 22, 23); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = "#4d5e6d"; ctx.lineWidth = 4; ctx.lineCap = "round";
+      for (let ring = 0; ring < 4; ring++) {
+        const yy = 28 + ring * 10;
+        const half = 19 - ring * 4;
+        const wave = Math.sin(spin + ring * 1.4) * 3;
+        ctx.beginPath(); ctx.moveTo(-half, yy + wave); ctx.quadraticCurveTo(0, yy - wave - 4, half, yy - wave); ctx.stroke();
       }
-      ctx.fillStyle = color; ctx.beginPath(); ctx.arc(0, 23, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = color; ctx.beginPath(); ctx.arc(0, 23, 8, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "rgba(255,255,255,.7)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(-2, 21, 3, 0, Math.PI * 2); ctx.stroke();
       ctx.restore();
 
       // Labels remain readable while the machine turns.
-      ctx.save(); ctx.translate(x, y); ctx.fillStyle = isPlayer ? "#ffc400" : "#07182f"; rounded(-32, -62, 64, 17, 7);
-      ctx.fillStyle = isPlayer ? "#10203a" : "#f4f8ff"; ctx.font = "800 10px Arial"; ctx.textAlign = "center"; ctx.fillText(label.toUpperCase(), 0, -50); ctx.restore();
+      ctx.save(); ctx.translate(x, y); ctx.fillStyle = isPlayer ? "#ffc400" : "#07182f"; rounded(-34, -65, 68, 18, 7);
+      ctx.fillStyle = isPlayer ? "#10203a" : "#f4f8ff"; ctx.font = "800 10px Arial"; ctx.textAlign = "center"; ctx.fillText(label.toUpperCase(), 0, -52); ctx.restore();
     };
     const drawPickup = (type: PickupType, x: number, y: number, now: number) => {
       const bob = Math.sin(now / 320 + x) * 3;
@@ -355,7 +382,7 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, onStats, onFinis
         if (Math.abs(player.vy) < 0.002) player.vy = 0;
 
         // Keep the whole rig (plus its auger) inside the tunnel walls.
-        const edge = Math.min(0.3, 52 / Math.max(w, 1));
+        const edge = Math.min(0.3, 72 / Math.max(w, 1));
         player.x = Math.max(edge, Math.min(1 - edge, player.x + player.vx * dt * (.19 + drill.speed * .017) * speedMul));
         player.targetDepth = Math.max(0, player.targetDepth + player.vy * dt * (7 + drill.power * 1.1) * speedMul);
         if (!horizontal && !vertical && stunTime <= 0) player.targetDepth += dt * 2.1;
@@ -367,7 +394,7 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, onStats, onFinis
         rivals.forEach((rival, index) => {
           const lateral = Math.sin(now / 1400 + index * 3) * .015;
           rival.depth += dt * rival.speed * (index ? .95 : 1.05) + Math.sin(now / 900 + index) * dt;
-          const rivalEdge = Math.min(0.3, 52 / Math.max(w, 1));
+          const rivalEdge = Math.min(0.3, 72 / Math.max(w, 1));
           rival.x = Math.max(rivalEdge, Math.min(1 - rivalEdge, rival.x + lateral * dt));
           const rivalDelta = Math.atan2(-lateral * 18, 1) - rival.direction;
           rival.direction += rivalDelta * Math.min(1, dt * 6);
