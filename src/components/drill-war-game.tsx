@@ -39,7 +39,7 @@ const characters = [
 ];
 
 const drills = [
-  { id: "mini" as const, name: "Mini Drill", icon: "🚜", trait: "Balanced and reliable", speed: 3, power: 3, control: 4 },
+  { id: "mini" as const, name: "Mini Drill", icon: "⚙️", trait: "Balanced and reliable", speed: 3, power: 3, control: 4 },
   { id: "speed" as const, name: "Speed Drill", icon: "🏎️", trait: "Fast and agile", speed: 5, power: 2, control: 4 },
   { id: "power" as const, name: "Power Drill", icon: "⚙️", trait: "Crushes tough rock", speed: 2, power: 5, control: 3 },
 ];

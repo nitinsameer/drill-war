@@ -187,8 +187,8 @@
 .brand span, .brand strong { font-family: var(--font-display); font-size: clamp(4.8rem, 11vw, 9.5rem); -webkit-text-stroke: clamp(2px, .35vw, 6px) var(--foreground); paint-order: stroke fill; letter-spacing: 0; }
 .brand span { color: var(--primary); }
 .brand strong { color: var(--coral); font-size: clamp(4rem, 9.5vw, 8.2rem); }
-.brand-compact { flex-direction: row; gap: 8px; transform: rotate(-1deg); }
-.brand-compact span, .brand-compact strong { font-size: clamp(1.25rem, 3vw, 2.2rem); -webkit-text-stroke-width: 1px; }
+.brand-compact { flex-direction: row; gap: 8px; transform: rotate(-1deg); max-width: 100%; white-space: nowrap; }
+.brand-compact span, .brand-compact strong { font-size: clamp(1rem, 6.5vw, 2.2rem); -webkit-text-stroke-width: 1px; }
 .tagline { margin-top: 28px; display: flex; align-items: center; gap: 12px; font: 900 clamp(.7rem, 1.6vw, 1rem) var(--font-body); color: var(--foreground); text-shadow: 0 2px 5px var(--background); }
 .tagline i { width: 7px; height: 7px; transform: rotate(45deg); background: var(--primary); }
 .menu-actions { display: grid; gap: 18px; margin-top: auto; }
@@ -305,6 +305,8 @@
 
 @media (max-width: 700px) {
   .arcade-shell, .game-screen { min-height: 520px; }
+  .brand-compact span, .brand-compact strong { font-size: clamp(.95rem, 5.5vw, 1.4rem); }
+  .panel-top { gap: 10px; }
   .menu-art { object-position: 43% center; }
   .menu-stage { justify-content: flex-start; padding-top: 10vh; }
   .brand span { font-size: clamp(4rem, 20vw, 6rem); }
