@@ -305,7 +305,6 @@
 
 @media (max-width: 700px) {
   .arcade-shell, .game-screen { min-height: 520px; }
-  .brand-compact span, .brand-compact strong { font-size: clamp(.95rem, 5.5vw, 1.4rem); }
   .panel-top { gap: 10px; }
   .menu-art { object-position: 43% center; }
   .menu-stage { justify-content: flex-start; padding-top: 10vh; }
