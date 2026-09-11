@@ -39,10 +39,11 @@ const characters = [
 ];
 
 const drills = [
-  { id: "mini" as const, name: "Mini Drill", icon: "⚙️", trait: "Balanced and reliable", speed: 3, power: 3, control: 4 },
-  { id: "speed" as const, name: "Speed Drill", icon: "🏎️", trait: "Fast and agile", speed: 5, power: 2, control: 4 },
-  { id: "power" as const, name: "Power Drill", icon: "⚙️", trait: "Crushes tough rock", speed: 2, power: 5, control: 3 },
+  { id: "mini" as const, name: "Mini Drill", tint: "#f0a712", trait: "Balanced and reliable", speed: 3, power: 3, control: 4 },
+  { id: "speed" as const, name: "Speed Drill", tint: "#40d8ff", trait: "Fast and agile", speed: 5, power: 2, control: 4 },
+  { id: "power" as const, name: "Power Drill", tint: "#ff5a80", trait: "Crushes tough rock", speed: 2, power: 5, control: 3 },
 ];
+
 
 type RivalScore = { name: string; score: number };
 type GameStats = {
