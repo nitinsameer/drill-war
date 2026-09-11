@@ -443,6 +443,9 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, sound, onStats, 
         player.depth += (player.targetDepth - player.depth) * Math.min(1, dt * 6);
 
         stats.depth = Math.floor(player.depth);
+        // Motor loudness follows how hard we dig, rumble follows travel speed.
+        const travel = Math.min(1, Math.hypot(player.vx, player.vy));
+        setDrillIntensity(stunTime > 0 ? 0.15 : 0.55 + travel * 0.45 + (boostTime > 0 ? 0.15 : 0), 0.35 + travel * 0.65);
         stats.score += dt * 4; // depth pressure keeps the race moving
 
         rivals.forEach((rival, index) => {
@@ -477,6 +480,8 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, sound, onStats, 
           return;
         }
       }
+
+      if (paused) setDrillIntensity(0, 0);
 
       const zone = player.depth > 140 ? "volcanic" : player.depth > 72 ? "crystal" : "dirt";
       const gradient = ctx.createLinearGradient(0, 0, 0, h);
@@ -601,21 +606,23 @@ export function DrillWarGame() {
   const [runId, setRunId] = useState(0);
   const [stats, setStats] = useState<GameStats>(emptyStats());
 
+  useEffect(() => { setSoundEnabled(sound); }, [sound]);
+
   useEffect(() => {
     if (screen !== "countdown") return;
     setCountdown(3);
     let value = 3;
     const timer = window.setInterval(() => {
       value -= 1;
-      if (value <= 0) { window.clearInterval(timer); setStats(emptyStats()); setRunId((id) => id + 1); setScreen("game"); }
-      else setCountdown(value);
+      if (value <= 0) { sfx.start(); window.clearInterval(timer); setStats(emptyStats()); setRunId((id) => id + 1); setScreen("game"); }
+      else { sfx.countdown(); setCountdown(value); }
     }, 850);
     return () => window.clearInterval(timer);
   }, [screen]);
 
   const finishGame = useCallback((finalStats: GameStats) => { setStats(finalStats); setScreen("results"); setPaused(false); }, []);
   const updateStats = useCallback((next: GameStats) => setStats(next), []);
-  const begin = () => setScreen("character");
+  const begin = () => { unlockAudio(); sfx.click(); setScreen("character"); };
   const you = characters.find((item) => item.id === character) ?? characters[0]!;
 
   const board = [
@@ -626,7 +633,7 @@ export function DrillWarGame() {
   if (screen === "game") {
     return (
       <main className="game-screen">
-        <GameCanvas key={runId} selectedCharacter={character} selectedDrill={drill} paused={paused} onStats={updateStats} onFinish={finishGame} />
+        <GameCanvas key={runId} selectedCharacter={character} selectedDrill={drill} paused={paused} sound={sound} onStats={updateStats} onFinish={finishGame} />
         <div className="hud" aria-live="polite">
           <div className="hud-player">
             <img src={you.art} width={512} height={512} alt="" loading="lazy" className="hud-avatar" />
@@ -667,7 +674,7 @@ export function DrillWarGame() {
 
       {screen === "character" && <section className="panel-screen selection-screen"><div className="panel-top"><Brand compact /><span className="step">STEP 1 OF 2</span></div><h1>CHOOSE YOUR DRILLER</h1><p className="screen-subtitle">Every racer has a different edge underground.</p><div className="selection-grid">{characters.map((item) => <button key={item.id} className={`select-card ${character === item.id ? "selected" : ""}`} onClick={() => setCharacter(item.id)}><span className={`character-portrait ${item.color}`}><img src={item.art} width={512} height={512} loading="lazy" alt={`${item.name}, a Drill War racer`} /></span><h2>{item.name}</h2><p>{item.trait}</p><strong>{item.perk}</strong><span className="selected-label">{character === item.id ? "SELECTED" : "SELECT"}</span></button>)}</div><div className="selection-actions"><Button variant="metal" size="lg" onClick={() => setScreen("menu")}><ArrowLeft /> Back</Button><Button variant="arcade" size="xl" onClick={() => setScreen("drill")}>Choose drill <ArrowRight /></Button></div></section>}
 
-      {screen === "drill" && <section className="panel-screen selection-screen"><div className="panel-top"><Brand compact /><span className="step">STEP 2 OF 2</span></div><h1>CHOOSE YOUR DRILL</h1><p className="screen-subtitle">Pick a machine built for your racing style.</p><div className="selection-grid">{drills.map((item) => <button key={item.id} className={`select-card drill-card ${drill === item.id ? "selected" : ""}`} onClick={() => setDrill(item.id)}><span className="drill-portrait">{item.icon}</span><h2>{item.name}</h2><p>{item.trait}</p><div className="drill-stats"><label>Speed <StatPips value={item.speed} /></label><label>Power <StatPips value={item.power} /></label><label>Control <StatPips value={item.control} /></label></div><span className="selected-label">{drill === item.id ? "SELECTED" : "SELECT"}</span></button>)}</div><div className="selection-actions"><Button variant="metal" size="lg" onClick={() => setScreen("character")}><ArrowLeft /> Back</Button><Button variant="arcade" size="xl" onClick={() => setScreen("countdown")}><Play /> Start race</Button></div></section>}
+      {screen === "drill" && <section className="panel-screen selection-screen"><div className="panel-top"><Brand compact /><span className="step">STEP 2 OF 2</span></div><h1>CHOOSE YOUR DRILL</h1><p className="screen-subtitle">Pick a machine built for your racing style.</p><div className="selection-grid">{drills.map((item) => <button key={item.id} className={`select-card drill-card ${drill === item.id ? "selected" : ""}`} onClick={() => setDrill(item.id)}><span className="drill-portrait"><RigIcon tint={item.tint} spinning={drill === item.id} /></span><h2>{item.name}</h2><p>{item.trait}</p><div className="drill-stats"><label>Speed <StatPips value={item.speed} /></label><label>Power <StatPips value={item.power} /></label><label>Control <StatPips value={item.control} /></label></div><span className="selected-label">{drill === item.id ? "SELECTED" : "SELECT"}</span></button>)}</div><div className="selection-actions"><Button variant="metal" size="lg" onClick={() => setScreen("character")}><ArrowLeft /> Back</Button><Button variant="arcade" size="xl" onClick={() => setScreen("countdown")}><Play /> Start race</Button></div></section>}
 
       {screen === "countdown" && <section className="countdown-stage"><p>GET READY!</p><strong key={countdown}>{countdown}</strong><span>{you.name} · {drills.find((d) => d.id === drill)?.name}</span></section>}
 
