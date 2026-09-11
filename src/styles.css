@@ -338,3 +338,19 @@
 .character-portrait img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 6px 10px rgb(0 0 0 / .35)); }
 .hud-avatar { width: 38px; height: 38px; border-radius: 9px; object-fit: cover; background: rgb(255 255 255 / .08); }
 .result-score .hud-avatar { width: 64px; height: 64px; border-radius: 14px; }
+
+/* Stylized rig artwork shared by drill select, how-to, pause and results */
+.rig-icon { width: 100%; height: 100%; max-height: 130px; filter: drop-shadow(0 8px 12px rgb(0 0 0 / .45)); }
+.rig-icon .rig-auger { transform-origin: 60px 88px; }
+.rig-icon.spinning .rig-auger { animation: auger-cut .5s linear infinite; }
+@keyframes auger-cut { from { transform: scaleX(1); } 50% { transform: scaleX(.86); } to { transform: scaleX(1); } }
+.drill-portrait { padding: 8px; background: radial-gradient(circle at 50% 32%, color-mix(in oklab, var(--accent), transparent 55%), var(--background)); }
+.select-card.selected .drill-portrait { background: radial-gradient(circle at 50% 32%, color-mix(in oklab, var(--primary), transparent 55%), var(--background)); }
+.how-rig { display: block; width: 62px; height: 62px; }
+.modal-icon { display: grid; place-items: center; width: 88px; height: 88px; }
+.winner-rig { width: 62px; height: 62px; }
+.result-rig { width: 66px; height: 66px; }
+@media (max-width: 700px) {
+  .drill-portrait .rig-icon { max-height: 100px; }
+  .winner-rig { display: none; }
+}
