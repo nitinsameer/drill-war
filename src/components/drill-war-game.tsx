@@ -89,6 +89,39 @@ function StatPips({ value }: { value: number }) {
   return <div className="stat-pips">{[1, 2, 3, 4, 5].map((pip) => <i key={pip} className={pip <= value ? "active" : ""} />)}</div>;
 }
 
+/** Stylized rig matching the in-race artwork: crawler tracks, cabin and cone auger. */
+function RigIcon({ tint, spinning = false }: { tint: string; spinning?: boolean }) {
+  return (
+    <svg viewBox="0 0 120 120" className={spinning ? "rig-icon spinning" : "rig-icon"} role="img" aria-hidden="true">
+      <ellipse cx="60" cy="72" rx="40" ry="34" fill="rgba(2,10,22,.45)" />
+      {[-1, 1].map((side) => (
+        <g key={side}>
+          <rect x={side < 0 ? 18 : 84} y="26" width="18" height="56" rx="8" fill="#101722" />
+          <rect x={side < 0 ? 22 : 88} y="31" width="10" height="46" rx="5" fill="#394758" />
+          {[36, 47, 58, 69].map((y) => <line key={y} x1={side < 0 ? 22 : 88} y1={y} x2={side < 0 ? 32 : 98} y2={y} stroke="#8994a0" strokeWidth="2" />)}
+        </g>
+      ))}
+      <rect x="36" y="22" width="48" height="54" rx="9" fill={tint} />
+      <rect x="41" y="26" width="38" height="7" rx="3.5" fill="rgba(255,255,255,.25)" />
+      <rect x="43" y="35" width="34" height="24" rx="6" fill="#172334" />
+      <rect x="47" y="39" width="26" height="16" rx="4" fill="#bfeaf6" />
+      <rect x="50" y="42" width="9" height="3.5" rx="1.7" fill="rgba(255,255,255,.8)" />
+      <rect x="40" y="62" width="40" height="16" rx="6" fill="#263646" />
+      <rect x="46" y="65" width="28" height="10" rx="4" fill={tint} />
+      <g className="rig-auger">
+        <path d="M36 78 Q48 100 60 116 Q72 100 84 78 Z" fill="#d7e0e6" />
+        <path d="M60 116 Q72 100 84 78 L60 78 Z" fill="#9cabb4" />
+        <path d="M42 84 Q60 78 78 84" stroke="#4d5e6d" strokeWidth="4" fill="none" strokeLinecap="round" />
+        <path d="M47 94 Q60 88 73 94" stroke="#4d5e6d" strokeWidth="4" fill="none" strokeLinecap="round" />
+        <path d="M52 104 Q60 99 68 104" stroke="#4d5e6d" strokeWidth="4" fill="none" strokeLinecap="round" />
+      </g>
+      <circle cx="60" cy="78" r="9" fill={tint} />
+      <circle cx="57" cy="75" r="3" fill="none" stroke="rgba(255,255,255,.75)" strokeWidth="2" />
+    </svg>
+  );
+}
+
+
 function GameCanvas({ selectedCharacter, selectedDrill, paused, onStats, onFinish }: {
   selectedCharacter: CharacterId;
   selectedDrill: DrillId;
