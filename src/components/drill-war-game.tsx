@@ -138,6 +138,16 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, sound, onStats, 
   const [knob, setKnob] = useState({ x: 0, y: 0, active: false });
   const finishRef = useRef(false);
 
+  // Continuous motor + tunnel rumble for the whole race; the master gain follows the sound toggle.
+  useEffect(() => {
+    startDrillLoop();
+    setSoundEnabled(sound);
+    return () => stopDrillLoop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+
+
   const setInput = (key: keyof typeof keys.current, value: boolean) => {
     keys.current[key] = value;
   };
