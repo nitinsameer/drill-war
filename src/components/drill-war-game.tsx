@@ -122,13 +122,15 @@ function RigIcon({ tint, spinning = false }: { tint: string; spinning?: boolean 
 }
 
 
-function GameCanvas({ selectedCharacter, selectedDrill, paused, onStats, onFinish }: {
+function GameCanvas({ selectedCharacter, selectedDrill, paused, sound, onStats, onFinish }: {
   selectedCharacter: CharacterId;
   selectedDrill: DrillId;
   paused: boolean;
+  sound: boolean;
   onStats: (stats: GameStats) => void;
   onFinish: (stats: GameStats) => void;
 }) {
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const keys = useRef({ left: false, right: false, up: false, down: false });
   // Analog stick vector, -1..1 on each axis. Touch and keyboard both feed movement.
