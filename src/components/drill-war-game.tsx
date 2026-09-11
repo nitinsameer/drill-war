@@ -27,6 +27,7 @@ import alexArt from "@/assets/alex.png";
 import miaArt from "@/assets/mia.png";
 import roboArt from "@/assets/robo.png";
 import { Button } from "@/components/ui/button";
+import { setDrillIntensity, setSoundEnabled, sfx, startDrillLoop, stopDrillLoop, unlockAudio } from "@/lib/game-audio";
 
 type Screen = "menu" | "howto" | "settings" | "character" | "drill" | "countdown" | "game" | "results";
 type CharacterId = "alex" | "mia" | "robo";
@@ -347,6 +348,7 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, sound, onStats, 
       if (pickup.type === "bomb") {
         if (stats.shields > 0) {
           stats.shields -= 1;
+          sfx.power();
           pops.push({ x: screenX, y: screenY, life: 1, text: "SHIELD!", color: "#40d8ff" });
           return;
         }
@@ -354,6 +356,7 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, sound, onStats, 
         stunTime = 1.1;
         stats.combo = 1;
         stats.score = Math.max(0, stats.score - 60);
+        sfx.bomb();
         pops.push({ x: screenX, y: screenY, life: 1, text: "-60", color: "#ff5a3d" });
         return;
       }
@@ -363,20 +366,25 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, sound, onStats, 
         stats.stars += 1;
         const gain = Math.round(10 * stats.combo * starBonus);
         stats.score += gain;
+        sfx.star();
         pops.push({ x: screenX, y: screenY, life: 1, text: `+${gain}`, color: "#ffd12a" });
       } else if (pickup.type === "gem") {
         stats.gems += 1;
         const gain = 100 + stats.combo * 5;
         stats.score += gain;
+        sfx.gem();
         pops.push({ x: screenX, y: screenY, life: 1, text: `+${gain}`, color: "#3ad7ff" });
       } else if (pickup.type === "boost") {
         stats.boosts += 1; boostTime = 4.5;
+        sfx.power();
         pops.push({ x: screenX, y: screenY, life: 1, text: "TURBO!", color: "#ffd12a" });
       } else if (pickup.type === "magnet") {
         stats.magnets += 1; magnetTime = 6;
+        sfx.power();
         pops.push({ x: screenX, y: screenY, life: 1, text: "MAGNET!", color: "#ff5a80" });
       } else {
         stats.shields += 1;
+        sfx.power();
         pops.push({ x: screenX, y: screenY, life: 1, text: "SHIELD +1", color: "#40d8ff" });
       }
     };
