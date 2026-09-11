@@ -624,6 +624,7 @@ export function DrillWarGame() {
   const updateStats = useCallback((next: GameStats) => setStats(next), []);
   const begin = () => { unlockAudio(); sfx.click(); setScreen("character"); };
   const you = characters.find((item) => item.id === character) ?? characters[0]!;
+  const yourDrill = drills.find((item) => item.id === drill) ?? drills[0]!;
 
   const board = [
     { name: `YOU · ${you.name.toUpperCase()}`, score: stats.score, you: true },
@@ -652,7 +653,7 @@ export function DrillWarGame() {
           <Button variant="control" size="iconGame" className="pause-button" aria-label="Pause game" onClick={() => setPaused(true)}><Pause /></Button>
         </div>
         {stats.time <= 10 && <div className="collapse-banner"><strong>CAVE COLLAPSE!</strong><span>Keep drilling — rocks are falling!</span></div>}
-        {paused && <div className="modal-scrim"><div className="game-modal"><span className="modal-icon">⛏️</span><h2>PAUSED</h2><p>Catch your breath. The treasure will wait.</p><Button variant="arcade" size="xl" onClick={() => setPaused(false)}><Play /> Resume</Button><Button variant="metal" size="lg" onClick={() => { setPaused(false); setScreen("menu"); }}><Home /> Quit to menu</Button></div></div>}
+        {paused && <div className="modal-scrim"><div className="game-modal"><span className="modal-icon"><RigIcon tint="#f0a712" spinning /></span><h2>PAUSED</h2><p>Catch your breath. The treasure will wait.</p><Button variant="arcade" size="xl" onClick={() => setPaused(false)}><Play /> Resume</Button><Button variant="metal" size="lg" onClick={() => { setPaused(false); setScreen("menu"); }}><Home /> Quit to menu</Button></div></div>}
       </main>
     );
   }
@@ -664,7 +665,7 @@ export function DrillWarGame() {
       {screen === "menu" && <section className="menu-stage"><Brand /><p className="tagline">DIG DEEP <i /> COLLECT <i /> CONQUER</p><div className="menu-actions"><Button variant="arcade" size="hero" onClick={begin}><Play /> Start game</Button><div><Button variant="metal" size="lg" onClick={() => setScreen("howto")}><BookOpen /> How to play</Button><Button variant="metal" size="lg" onClick={() => setScreen("settings")}><Settings /> Settings</Button></div></div><span className="version">ARCADE EDITION · v1.0</span></section>}
 
       {screen === "howto" && <section className="panel-screen"><div className="panel-top"><Brand compact /><Button variant="control" size="iconGame" onClick={() => setScreen("menu")} aria-label="Back to menu"><Home /></Button></div><h1>HOW TO PLAY</h1><div className="howto-grid">
-        <article><span className="key-cluster">◉</span><h3>Move & drill</h3><p>Drag the on-screen stick to steer and dig in any direction. WASD also works on a keyboard.</p></article>
+        <article><span className="how-rig"><RigIcon tint="#f0a712" spinning /></span><h3>Move & drill</h3><p>Drag the on-screen stick to steer and dig in any direction. WASD also works on a keyboard.</p></article>
         <article><span className="how-icon">⭐ 💎</span><h3>Grab treasure</h3><p>Stars are worth 10 × your combo, gems are worth 100. Keep collecting to hold the combo.</p></article>
         <article><span className="how-icon">⚡ 🧲 🛡</span><h3>Use power-ups</h3><p>Turbo speeds you up, the magnet vacuums treasure, a shield absorbs one blast.</p></article>
         <article><span className="how-icon">💣 🔥</span><h3>Dodge danger</h3><p>Bombs cost 60 points, break your combo and stun the drill for a second.</p></article>
@@ -678,7 +679,7 @@ export function DrillWarGame() {
 
       {screen === "countdown" && <section className="countdown-stage"><p>GET READY!</p><strong key={countdown}>{countdown}</strong><span>{you.name} · {drills.find((d) => d.id === drill)?.name}</span></section>}
 
-      {screen === "results" && <section className="panel-screen results-screen"><Brand compact /><div className="winner-title"><Trophy /><div><small>EXPEDITION COMPLETE</small><h1>{board[0]?.you ? "YOU WIN!" : `${board[0]?.name} WINS!`}</h1></div></div><div className="result-score"><img src={you.art} width={512} height={512} loading="lazy" alt="" className="hud-avatar" /><div><small>FINAL SCORE</small><strong>{stats.score.toLocaleString()}</strong></div></div><div className="result-stats"><div><Star /><strong>{stats.stars}</strong><small>Stars</small></div><div><Gem /><strong>{stats.gems}</strong><small>Gems</small></div><div><ArrowDown /><strong>{stats.depth}m</strong><small>Depth</small></div><div><Magnet /><strong>{stats.boosts + stats.magnets + stats.shields}</strong><small>Power-ups</small></div></div><div className="final-board"><h3>FINAL LEADERBOARD</h3>{board.map((entry, index) => <div key={entry.name} className={entry.you ? "winner-row" : ""}><b>{index + 1}</b><span>{entry.name}</span><strong>{entry.score.toLocaleString()}</strong></div>)}</div><div className="selection-actions"><Button variant="arcade" size="xl" onClick={() => setScreen("countdown")}><RotateCcw /> Race again</Button><Button variant="metal" size="lg" onClick={() => setScreen("drill")}><Settings /> Change drill</Button></div></section>}
+      {screen === "results" && <section className="panel-screen results-screen"><Brand compact /><div className="winner-title"><span className="winner-rig"><RigIcon tint={yourDrill.tint} spinning /></span><Trophy /><div><small>EXPEDITION COMPLETE</small><h1>{board[0]?.you ? "YOU WIN!" : `${board[0]?.name} WINS!`}</h1></div></div><div className="result-score"><img src={you.art} width={512} height={512} loading="lazy" alt="" className="hud-avatar" /><div><small>FINAL SCORE</small><strong>{stats.score.toLocaleString()}</strong></div><span className="result-rig"><RigIcon tint={yourDrill.tint} spinning /></span></div><div className="result-stats"><div><Star /><strong>{stats.stars}</strong><small>Stars</small></div><div><Gem /><strong>{stats.gems}</strong><small>Gems</small></div><div><ArrowDown /><strong>{stats.depth}m</strong><small>Depth</small></div><div><Magnet /><strong>{stats.boosts + stats.magnets + stats.shields}</strong><small>Power-ups</small></div></div><div className="final-board"><h3>FINAL LEADERBOARD</h3>{board.map((entry, index) => <div key={entry.name} className={entry.you ? "winner-row" : ""}><b>{index + 1}</b><span>{entry.name}</span><strong>{entry.score.toLocaleString()}</strong></div>)}</div><div className="selection-actions"><Button variant="arcade" size="xl" onClick={() => setScreen("countdown")}><RotateCcw /> Race again</Button><Button variant="metal" size="lg" onClick={() => setScreen("drill")}><Settings /> Change drill</Button></div></section>}
     </main>
   );
 }
