@@ -459,7 +459,7 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, sound, level, on
         if (Math.abs(player.vy) < 0.002) player.vy = 0;
 
         // Keep the whole rig (plus its auger) inside the tunnel walls.
-        const edge = Math.min(0.3, 72 / Math.max(w, 1));
+        const edge = Math.min(0.34, 72 / Math.max(w, 1) + laneSqueeze);
         player.x = Math.max(edge, Math.min(1 - edge, player.x + player.vx * dt * (.19 + drill.speed * .017) * speedMul));
         player.targetDepth = Math.max(0, player.targetDepth + player.vy * dt * (7 + drill.power * 1.1) * speedMul);
         if (!horizontal && !vertical && stunTime <= 0) player.targetDepth += dt * 2.1;
