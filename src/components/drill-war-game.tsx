@@ -218,6 +218,8 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, sound, onStats, 
     let stunTime = 0;
     let comboTime = 0;
     let timeLeft = 60;
+    let wasLeading = true;
+    let calledFinal = false;
     let spawnedTo = 6;
     const pickups: Pickup[] = [];
     const pops: { x: number; y: number; life: number; text: string; color: string }[] = [];
