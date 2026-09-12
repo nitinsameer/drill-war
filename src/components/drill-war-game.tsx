@@ -487,6 +487,15 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, sound, onStats, 
           if (Math.hypot(dx, dy) < (magnetised ? reach : 38)) collect(pickup, px, py);
         });
 
+        // Commentary on where the player sits against the rival rigs.
+        const leader = rivals.reduce((best, rival) => (rival.score > best.score ? rival : best), rivals[0]!);
+        const inLead = stats.score >= leader.score;
+        if (inLead !== wasLeading) {
+          wasLeading = inLead;
+          say(inLead ? voiceLines.leadTaken : `${leader.name} is ahead of you!`, { cooldown: 7000 });
+        }
+        if (timeLeft <= 10 && !calledFinal) { calledFinal = true; say(voiceLines.finalTen, { priority: true }); }
+
         if (Math.floor(now / 200) % 2 === 0) onStats({ ...stats, score: Math.floor(stats.score) });
         if (timeLeft <= 0 && !finishRef.current) {
           finishRef.current = true;
