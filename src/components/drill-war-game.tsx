@@ -631,7 +631,7 @@ export function DrillWarGame() {
   const [runId, setRunId] = useState(0);
   const [stats, setStats] = useState<GameStats>(emptyStats());
 
-  useEffect(() => { setSoundEnabled(sound); }, [sound]);
+  useEffect(() => { setSoundEnabled(sound); setVoiceEnabled(sound); }, [sound]);
 
   useEffect(() => {
     if (screen !== "countdown") return;
