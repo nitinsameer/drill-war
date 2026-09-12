@@ -28,6 +28,15 @@ import miaArt from "@/assets/mia.png";
 import roboArt from "@/assets/robo.png";
 import { Button } from "@/components/ui/button";
 import { setDrillIntensity, setSoundEnabled, sfx, startDrillLoop, stopDrillLoop, unlockAudio } from "@/lib/game-audio";
+import { prewarmVoice, say, setVoiceEnabled, stopVoice } from "@/lib/race-voice";
+
+const voiceLines = {
+  start: "Drills down, dig deep!",
+  gem: "Gem secured! Big points!",
+  leadTaken: "You've taken the lead!",
+  leadLost: "You're falling behind, push harder!",
+  finalTen: "Ten seconds left! Dig, dig, dig!",
+};
 
 type Screen = "menu" | "howto" | "settings" | "character" | "drill" | "countdown" | "game" | "results";
 type CharacterId = "alex" | "mia" | "robo";
