@@ -580,7 +580,7 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, sound, level, on
     };
     frame = requestAnimationFrame(draw);
     return () => { cancelAnimationFrame(frame); window.removeEventListener("resize", resize); };
-  }, [onFinish, onStats, paused, selectedCharacter, selectedDrill]);
+  }, [level, onFinish, onStats, paused, selectedCharacter, selectedDrill]);
 
   const padRef = useRef<HTMLDivElement>(null);
   const pointerId = useRef<number | null>(null);
