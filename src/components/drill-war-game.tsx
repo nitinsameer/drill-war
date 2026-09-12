@@ -132,11 +132,12 @@ function RigIcon({ tint, spinning = false }: { tint: string; spinning?: boolean 
 }
 
 
-function GameCanvas({ selectedCharacter, selectedDrill, paused, sound, onStats, onFinish }: {
+function GameCanvas({ selectedCharacter, selectedDrill, paused, sound, level, onStats, onFinish }: {
   selectedCharacter: CharacterId;
   selectedDrill: DrillId;
   paused: boolean;
   sound: boolean;
+  level: number;
   onStats: (stats: GameStats) => void;
   onFinish: (stats: GameStats) => void;
 }) {
