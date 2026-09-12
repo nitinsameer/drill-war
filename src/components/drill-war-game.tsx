@@ -380,12 +380,14 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, sound, onStats, 
         stats.score += gain;
         sfx.star();
         pops.push({ x: screenX, y: screenY, life: 1, text: `+${gain}`, color: "#ffd12a" });
+        if (stats.stars > 0 && stats.stars % 10 === 0) say(`${stats.stars} stars collected!`, { cooldown: 6000 });
       } else if (pickup.type === "gem") {
         stats.gems += 1;
         const gain = 100 + stats.combo * 5;
         stats.score += gain;
         sfx.gem();
         pops.push({ x: screenX, y: screenY, life: 1, text: `+${gain}`, color: "#3ad7ff" });
+        say(stats.gems > 1 ? `${stats.gems} gems in the bag!` : voiceLines.gem, { cooldown: 5000 });
       } else if (pickup.type === "boost") {
         stats.boosts += 1; boostTime = 4.5;
         sfx.power();
