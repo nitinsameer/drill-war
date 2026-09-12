@@ -28,6 +28,15 @@ import miaArt from "@/assets/mia.png";
 import roboArt from "@/assets/robo.png";
 import { Button } from "@/components/ui/button";
 import { setDrillIntensity, setSoundEnabled, sfx, startDrillLoop, stopDrillLoop, unlockAudio } from "@/lib/game-audio";
+import { prewarmVoice, say, setVoiceEnabled, stopVoice } from "@/lib/race-voice";
+
+const voiceLines = {
+  start: "Drills down, dig deep!",
+  gem: "Gem secured! Big points!",
+  leadTaken: "You've taken the lead!",
+  leadLost: "You're falling behind, push harder!",
+  finalTen: "Ten seconds left! Dig, dig, dig!",
+};
 
 type Screen = "menu" | "howto" | "settings" | "character" | "drill" | "countdown" | "game" | "results";
 type CharacterId = "alex" | "mia" | "robo";
@@ -123,11 +132,12 @@ function RigIcon({ tint, spinning = false }: { tint: string; spinning?: boolean 
 }
 
 
-function GameCanvas({ selectedCharacter, selectedDrill, paused, sound, onStats, onFinish }: {
+function GameCanvas({ selectedCharacter, selectedDrill, paused, sound, level, onStats, onFinish }: {
   selectedCharacter: CharacterId;
   selectedDrill: DrillId;
   paused: boolean;
   sound: boolean;
+  level: number;
   onStats: (stats: GameStats) => void;
   onFinish: (stats: GameStats) => void;
 }) {
@@ -143,7 +153,10 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, sound, onStats, 
   useEffect(() => {
     startDrillLoop();
     setSoundEnabled(sound);
-    return () => stopDrillLoop();
+    setVoiceEnabled(sound);
+    prewarmVoice(Object.values(voiceLines));
+    say(voiceLines.start, { priority: true });
+    return () => { stopDrillLoop(); stopVoice(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -183,13 +196,18 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, sound, onStats, 
     const player = { x: 0.5, depth: 0, targetDepth: 0, direction: 0, targetDirection: 0, moving: true, vx: 0, vy: 1 };
     const drill = drills.find((item) => item.id === selectedDrill) ?? drills[0]!;
     const char = characters.find((item) => item.id === selectedCharacter) ?? characters[0]!;
+    // Later levels: faster rivals, tighter tunnel, denser obstacle fields.
+    const step = Math.min(6, Math.max(0, level - 1));
+    const rivalBoost = 1 + step * 0.14;
+    const bombShift = step * 0.045;
+    const laneSqueeze = Math.min(0.2, step * 0.035);
     const rivals = characters
       .filter((item) => item.id !== selectedCharacter)
       .map((item, index) => ({
         name: item.name.toUpperCase(),
         x: index ? 0.76 : 0.24,
         depth: index ? 4 : 8,
-        speed: index ? 4.3 : 4.9,
+        speed: (index ? 4.3 : 4.9) * rivalBoost,
         score: 0,
         color: item.id === "robo" ? "#40d8ff" : item.id === "mia" ? "#ff5a80" : "#f0a712",
         direction: 0,
@@ -206,22 +224,25 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, sound, onStats, 
     let stunTime = 0;
     let comboTime = 0;
     let timeLeft = 60;
+    let wasLeading = true;
+    let calledFinal = false;
     let spawnedTo = 6;
     const pickups: Pickup[] = [];
     const pops: { x: number; y: number; life: number; text: string; color: string }[] = [];
 
     const spawnAhead = () => {
       while (spawnedTo < player.depth + 120) {
-        spawnedTo += 3 + Math.random() * 2.4;
+        spawnedTo += Math.max(1.7, 3 - step * 0.22) + Math.random() * 2.4;
         const roll = Math.random();
         const zoneDeep = spawnedTo > 72;
         let type: PickupType = "star";
         if (roll > 0.94) type = "shield";
         else if (roll > 0.88) type = "magnet";
         else if (roll > 0.81) type = "boost";
-        else if (roll > (zoneDeep ? 0.66 : 0.74)) type = "bomb";
+        else if (roll > (zoneDeep ? 0.66 : 0.74) - bombShift) type = "bomb";
         else if (roll > (zoneDeep ? 0.42 : 0.56)) type = "gem";
-        pickups.push({ depth: spawnedTo, x: 0.12 + Math.random() * 0.76, type, taken: false });
+        const span = 0.76 - laneSqueeze * 2;
+        pickups.push({ depth: spawnedTo, x: 0.12 + laneSqueeze + Math.random() * span, type, taken: false });
       }
     };
     spawnAhead();
@@ -368,12 +389,14 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, sound, onStats, 
         stats.score += gain;
         sfx.star();
         pops.push({ x: screenX, y: screenY, life: 1, text: `+${gain}`, color: "#ffd12a" });
+        if (stats.stars > 0 && stats.stars % 10 === 0) say(`${stats.stars} stars collected!`, { cooldown: 6000 });
       } else if (pickup.type === "gem") {
         stats.gems += 1;
         const gain = 100 + stats.combo * 5;
         stats.score += gain;
         sfx.gem();
         pops.push({ x: screenX, y: screenY, life: 1, text: `+${gain}`, color: "#3ad7ff" });
+        say(stats.gems > 1 ? `${stats.gems} gems in the bag!` : voiceLines.gem, { cooldown: 5000 });
       } else if (pickup.type === "boost") {
         stats.boosts += 1; boostTime = 4.5;
         sfx.power();
@@ -436,7 +459,7 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, sound, onStats, 
         if (Math.abs(player.vy) < 0.002) player.vy = 0;
 
         // Keep the whole rig (plus its auger) inside the tunnel walls.
-        const edge = Math.min(0.3, 72 / Math.max(w, 1));
+        const edge = Math.min(0.34, 72 / Math.max(w, 1) + laneSqueeze);
         player.x = Math.max(edge, Math.min(1 - edge, player.x + player.vx * dt * (.19 + drill.speed * .017) * speedMul));
         player.targetDepth = Math.max(0, player.targetDepth + player.vy * dt * (7 + drill.power * 1.1) * speedMul);
         if (!horizontal && !vertical && stunTime <= 0) player.targetDepth += dt * 2.1;
@@ -472,6 +495,15 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, sound, onStats, 
           const magnetised = magnetTime > 0 && pickup.type !== "bomb";
           if (Math.hypot(dx, dy) < (magnetised ? reach : 38)) collect(pickup, px, py);
         });
+
+        // Commentary on where the player sits against the rival rigs.
+        const leader = rivals.reduce((best, rival) => (rival.score > best.score ? rival : best), rivals[0]!);
+        const inLead = stats.score >= leader.score;
+        if (inLead !== wasLeading) {
+          wasLeading = inLead;
+          say(inLead ? voiceLines.leadTaken : `${leader.name} is ahead of you!`, { cooldown: 7000 });
+        }
+        if (timeLeft <= 10 && !calledFinal) { calledFinal = true; say(voiceLines.finalTen, { priority: true }); }
 
         if (Math.floor(now / 200) % 2 === 0) onStats({ ...stats, score: Math.floor(stats.score) });
         if (timeLeft <= 0 && !finishRef.current) {
@@ -548,7 +580,7 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, sound, onStats, 
     };
     frame = requestAnimationFrame(draw);
     return () => { cancelAnimationFrame(frame); window.removeEventListener("resize", resize); };
-  }, [onFinish, onStats, paused, selectedCharacter, selectedDrill]);
+  }, [level, onFinish, onStats, paused, selectedCharacter, selectedDrill]);
 
   const padRef = useRef<HTMLDivElement>(null);
   const pointerId = useRef<number | null>(null);
@@ -604,9 +636,11 @@ export function DrillWarGame() {
   const [paused, setPaused] = useState(false);
   const [sound, setSound] = useState(true);
   const [runId, setRunId] = useState(0);
+  const [level, setLevel] = useState(1);
+  const [bestLevel, setBestLevel] = useState(1);
   const [stats, setStats] = useState<GameStats>(emptyStats());
 
-  useEffect(() => { setSoundEnabled(sound); }, [sound]);
+  useEffect(() => { setSoundEnabled(sound); setVoiceEnabled(sound); }, [sound]);
 
   useEffect(() => {
     if (screen !== "countdown") return;
@@ -620,7 +654,13 @@ export function DrillWarGame() {
     return () => window.clearInterval(timer);
   }, [screen]);
 
-  const finishGame = useCallback((finalStats: GameStats) => { setStats(finalStats); setScreen("results"); setPaused(false); }, []);
+  const finishGame = useCallback((finalStats: GameStats) => {
+    setStats(finalStats);
+    setScreen("results");
+    setPaused(false);
+    // Clearing the rivals unlocks the next, tougher tunnel.
+    setBestLevel((best) => (finalStats.score >= Math.max(...finalStats.rivals.map((rival) => rival.score), 0) ? Math.max(best, level + 1) : best));
+  }, [level]);
   const updateStats = useCallback((next: GameStats) => setStats(next), []);
   const begin = () => { unlockAudio(); sfx.click(); setScreen("character"); };
   const you = characters.find((item) => item.id === character) ?? characters[0]!;
@@ -634,7 +674,7 @@ export function DrillWarGame() {
   if (screen === "game") {
     return (
       <main className="game-screen">
-        <GameCanvas key={runId} selectedCharacter={character} selectedDrill={drill} paused={paused} sound={sound} onStats={updateStats} onFinish={finishGame} />
+        <GameCanvas key={runId} selectedCharacter={character} selectedDrill={drill} paused={paused} sound={sound} level={level} onStats={updateStats} onFinish={finishGame} />
         <div className="hud" aria-live="polite">
           <div className="hud-player">
             <img src={you.art} width={512} height={512} alt="" loading="lazy" className="hud-avatar" />
@@ -649,7 +689,7 @@ export function DrillWarGame() {
             <span><Zap /> x{stats.combo}</span>
             <span><Shield /> {stats.shields}</span>
           </div>
-          <div className="zone-badge">{stats.depth > 140 ? "VOLCANIC CORE" : stats.depth > 72 ? "CRYSTAL CAVE" : "DEEP DIRT"}</div>
+          <div className="zone-badge">LEVEL {level} · {stats.depth > 140 ? "VOLCANIC CORE" : stats.depth > 72 ? "CRYSTAL CAVE" : "DEEP DIRT"}</div>
           <Button variant="control" size="iconGame" className="pause-button" aria-label="Pause game" onClick={() => setPaused(true)}><Pause /></Button>
         </div>
         {stats.time <= 10 && <div className="collapse-banner"><strong>CAVE COLLAPSE!</strong><span>Keep drilling — rocks are falling!</span></div>}
@@ -679,7 +719,7 @@ export function DrillWarGame() {
 
       {screen === "countdown" && <section className="countdown-stage"><p>GET READY!</p><strong key={countdown}>{countdown}</strong><span>{you.name} · {drills.find((d) => d.id === drill)?.name}</span></section>}
 
-      {screen === "results" && <section className="panel-screen results-screen"><Brand compact /><div className="winner-title"><span className="winner-rig"><RigIcon tint={yourDrill.tint} spinning /></span><Trophy /><div><small>EXPEDITION COMPLETE</small><h1>{board[0]?.you ? "YOU WIN!" : `${board[0]?.name} WINS!`}</h1></div></div><div className="result-score"><img src={you.art} width={512} height={512} loading="lazy" alt="" className="hud-avatar" /><div><small>FINAL SCORE</small><strong>{stats.score.toLocaleString()}</strong></div><span className="result-rig"><RigIcon tint={yourDrill.tint} spinning /></span></div><div className="result-stats"><div><Star /><strong>{stats.stars}</strong><small>Stars</small></div><div><Gem /><strong>{stats.gems}</strong><small>Gems</small></div><div><ArrowDown /><strong>{stats.depth}m</strong><small>Depth</small></div><div><Magnet /><strong>{stats.boosts + stats.magnets + stats.shields}</strong><small>Power-ups</small></div></div><div className="final-board"><h3>FINAL LEADERBOARD</h3>{board.map((entry, index) => <div key={entry.name} className={entry.you ? "winner-row" : ""}><b>{index + 1}</b><span>{entry.name}</span><strong>{entry.score.toLocaleString()}</strong></div>)}</div><div className="selection-actions"><Button variant="arcade" size="xl" onClick={() => setScreen("countdown")}><RotateCcw /> Race again</Button><Button variant="metal" size="lg" onClick={() => setScreen("drill")}><Settings /> Change drill</Button></div></section>}
+      {screen === "results" && <section className="panel-screen results-screen"><Brand compact /><div className="winner-title"><span className="winner-rig"><RigIcon tint={yourDrill.tint} spinning /></span><Trophy /><div><small>LEVEL {level} COMPLETE</small><h1>{board[0]?.you ? "YOU WIN!" : `${board[0]?.name} WINS!`}</h1></div></div><div className="result-score"><img src={you.art} width={512} height={512} loading="lazy" alt="" className="hud-avatar" /><div><small>FINAL SCORE</small><strong>{stats.score.toLocaleString()}</strong></div><span className="result-rig"><RigIcon tint={yourDrill.tint} spinning /></span></div><div className="result-stats"><div><Star /><strong>{stats.stars}</strong><small>Stars</small></div><div><Gem /><strong>{stats.gems}</strong><small>Gems</small></div><div><ArrowDown /><strong>{stats.depth}m</strong><small>Depth</small></div><div><Magnet /><strong>{stats.boosts + stats.magnets + stats.shields}</strong><small>Power-ups</small></div></div><div className="final-board"><h3>FINAL LEADERBOARD</h3>{board.map((entry, index) => <div key={entry.name} className={entry.you ? "winner-row" : ""}><b>{index + 1}</b><span>{entry.name}</span><strong>{entry.score.toLocaleString()}</strong></div>)}</div><div className="selection-actions">{bestLevel > level ? <Button variant="arcade" size="xl" onClick={() => { sfx.click(); setLevel(level + 1); setScreen("countdown"); }}><Play /> Level {level + 1}</Button> : null}<Button variant={bestLevel > level ? "metal" : "arcade"} size={bestLevel > level ? "lg" : "xl"} onClick={() => setScreen("countdown")}><RotateCcw /> Race again</Button><Button variant="metal" size="lg" onClick={() => setScreen("drill")}><Settings /> Change drill</Button></div></section>}
     </main>
   );
 }
