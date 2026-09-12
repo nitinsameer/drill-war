@@ -636,6 +636,8 @@ export function DrillWarGame() {
   const [paused, setPaused] = useState(false);
   const [sound, setSound] = useState(true);
   const [runId, setRunId] = useState(0);
+  const [level, setLevel] = useState(1);
+  const [bestLevel, setBestLevel] = useState(1);
   const [stats, setStats] = useState<GameStats>(emptyStats());
 
   useEffect(() => { setSoundEnabled(sound); setVoiceEnabled(sound); }, [sound]);
@@ -672,7 +674,7 @@ export function DrillWarGame() {
   if (screen === "game") {
     return (
       <main className="game-screen">
-        <GameCanvas key={runId} selectedCharacter={character} selectedDrill={drill} paused={paused} sound={sound} onStats={updateStats} onFinish={finishGame} />
+        <GameCanvas key={runId} selectedCharacter={character} selectedDrill={drill} paused={paused} sound={sound} level={level} onStats={updateStats} onFinish={finishGame} />
         <div className="hud" aria-live="polite">
           <div className="hud-player">
             <img src={you.art} width={512} height={512} alt="" loading="lazy" className="hud-avatar" />
@@ -687,7 +689,7 @@ export function DrillWarGame() {
             <span><Zap /> x{stats.combo}</span>
             <span><Shield /> {stats.shields}</span>
           </div>
-          <div className="zone-badge">{stats.depth > 140 ? "VOLCANIC CORE" : stats.depth > 72 ? "CRYSTAL CAVE" : "DEEP DIRT"}</div>
+          <div className="zone-badge">LEVEL {level} · {stats.depth > 140 ? "VOLCANIC CORE" : stats.depth > 72 ? "CRYSTAL CAVE" : "DEEP DIRT"}</div>
           <Button variant="control" size="iconGame" className="pause-button" aria-label="Pause game" onClick={() => setPaused(true)}><Pause /></Button>
         </div>
         {stats.time <= 10 && <div className="collapse-banner"><strong>CAVE COLLAPSE!</strong><span>Keep drilling — rocks are falling!</span></div>}
