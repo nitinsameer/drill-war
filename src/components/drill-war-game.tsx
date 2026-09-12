@@ -152,7 +152,10 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, sound, onStats, 
   useEffect(() => {
     startDrillLoop();
     setSoundEnabled(sound);
-    return () => stopDrillLoop();
+    setVoiceEnabled(sound);
+    prewarmVoice(Object.values(voiceLines));
+    say(voiceLines.start, { priority: true });
+    return () => { stopDrillLoop(); stopVoice(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
