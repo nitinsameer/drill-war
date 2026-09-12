@@ -196,6 +196,11 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, sound, level, on
     const player = { x: 0.5, depth: 0, targetDepth: 0, direction: 0, targetDirection: 0, moving: true, vx: 0, vy: 1 };
     const drill = drills.find((item) => item.id === selectedDrill) ?? drills[0]!;
     const char = characters.find((item) => item.id === selectedCharacter) ?? characters[0]!;
+    // Later levels: faster rivals, tighter tunnel, denser obstacle fields.
+    const step = Math.min(6, Math.max(0, level - 1));
+    const rivalBoost = 1 + step * 0.14;
+    const bombShift = step * 0.045;
+    const laneSqueeze = Math.min(0.2, step * 0.035);
     const rivals = characters
       .filter((item) => item.id !== selectedCharacter)
       .map((item, index) => ({
