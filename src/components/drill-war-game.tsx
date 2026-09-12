@@ -207,7 +207,7 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, sound, level, on
         name: item.name.toUpperCase(),
         x: index ? 0.76 : 0.24,
         depth: index ? 4 : 8,
-        speed: index ? 4.3 : 4.9,
+        speed: (index ? 4.3 : 4.9) * rivalBoost,
         score: 0,
         color: item.id === "robo" ? "#40d8ff" : item.id === "mia" ? "#ff5a80" : "#f0a712",
         direction: 0,
@@ -232,16 +232,17 @@ function GameCanvas({ selectedCharacter, selectedDrill, paused, sound, level, on
 
     const spawnAhead = () => {
       while (spawnedTo < player.depth + 120) {
-        spawnedTo += 3 + Math.random() * 2.4;
+        spawnedTo += Math.max(1.7, 3 - step * 0.22) + Math.random() * 2.4;
         const roll = Math.random();
         const zoneDeep = spawnedTo > 72;
         let type: PickupType = "star";
         if (roll > 0.94) type = "shield";
         else if (roll > 0.88) type = "magnet";
         else if (roll > 0.81) type = "boost";
-        else if (roll > (zoneDeep ? 0.66 : 0.74)) type = "bomb";
+        else if (roll > (zoneDeep ? 0.66 : 0.74) - bombShift) type = "bomb";
         else if (roll > (zoneDeep ? 0.42 : 0.56)) type = "gem";
-        pickups.push({ depth: spawnedTo, x: 0.12 + Math.random() * 0.76, type, taken: false });
+        const span = 0.76 - laneSqueeze * 2;
+        pickups.push({ depth: spawnedTo, x: 0.12 + laneSqueeze + Math.random() * span, type, taken: false });
       }
     };
     spawnAhead();
