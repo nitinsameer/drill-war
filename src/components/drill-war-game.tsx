@@ -652,7 +652,13 @@ export function DrillWarGame() {
     return () => window.clearInterval(timer);
   }, [screen]);
 
-  const finishGame = useCallback((finalStats: GameStats) => { setStats(finalStats); setScreen("results"); setPaused(false); }, []);
+  const finishGame = useCallback((finalStats: GameStats) => {
+    setStats(finalStats);
+    setScreen("results");
+    setPaused(false);
+    // Clearing the rivals unlocks the next, tougher tunnel.
+    setBestLevel((best) => (finalStats.score >= Math.max(...finalStats.rivals.map((rival) => rival.score), 0) ? Math.max(best, level + 1) : best));
+  }, [level]);
   const updateStats = useCallback((next: GameStats) => setStats(next), []);
   const begin = () => { unlockAudio(); sfx.click(); setScreen("character"); };
   const you = characters.find((item) => item.id === character) ?? characters[0]!;
